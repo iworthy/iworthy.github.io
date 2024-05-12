@@ -1,0 +1,1 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[140],{521:function(t,n,s){"use strict";s.r(n);var e=s(12),o=Object(e.a)({},(function(){var t=this._self._c;return t("ContentSlotsDistributor",{attrs:{"slot-key":this.$parent.slotKey}},[t("p",[this._v("少年易学老难成，一寸光阴不可轻。\n未觉池塘春草梦，阶前梧叶已秋声。")])])}),[],!1,null,null,null);n.default=o.exports}}]);
