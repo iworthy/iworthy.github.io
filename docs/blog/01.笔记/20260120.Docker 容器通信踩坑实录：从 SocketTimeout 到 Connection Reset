@@ -1,0 +1,120 @@
+# Docker 容器通信踩坑实录：从 SocketTimeout 到 Connection Reset
+
+最近在通过 Portainer 部署两个微服务（服务 A 和 服务 B）时，遭遇了经典的连通性问题。本文记录了从 `SocketTimeoutException` 到 `Connection Reset` 的排查过程，并总结了 Docker 容器间通信的最佳实践。
+
+## 1. 问题背景
+
+* **环境**：Linux 服务器 + Docker + Portainer
+* **服务 A**：映射了宿主机端口（如 `8080:8080`），作为被调用方。
+* **服务 B**：未映射端口（纯后端处理），需要通过 HTTP 请求调用服务 A。
+* **现象**：
+* 本地开发环境（IDEA 或 Docker Desktop）调用正常。
+* 部署到服务器后，服务 B 报错。
+
+
+
+## 2. 第一阶段：SocketTimeoutException
+
+服务 B 启动后，发起请求时直接抛出异常：
+
+```java
+cn.hutool.core.io.IORuntimeException: SocketTimeoutException: connect timed out
+
+```
+
+### 原因分析
+
+这是最常见的错误。在代码配置中，如果不加修改直接使用 `127.0.0.1` 或 `localhost`，在 Docker 容器看来：
+
+* **`localhost` 指的是容器 B 自身**。
+* 服务 A 运行在另一个独立的容器中，并不在容器 B 的内部。
+* 容器 B 试图连接自己的 8080 端口，发现没人监听，或者连接不上，最终超时。
+
+## 3. 第二阶段：错误的修复尝试与 Connection Reset
+
+为了快速解决，我尝试将请求地址改为宿主机的网关地址，试图利用 `host.docker.internal`（这是 Docker Desktop 的特性，Linux 默认不支持，需配置）。
+
+### Portainer 配置陷阱
+
+在 Portainer 的 `Advanced container settings` -> `Network` -> `Hosts file entries` 中添加映射时，遇到了配置格式的问题。
+
+* **错误配置**：将 `host.docker.internal` 和 `host-gateway` 分成两行填写。
+* **正确配置**：在 Portainer 的 List 模式下，应该写成一行：
+```text
+host.docker.internal:host-gateway
+
+```
+
+
+
+配置生效后，错误变了，变成了更棘手的：
+
+```java
+cn.hutool.http.HttpException: Connection reset
+
+```
+
+### 为什么会 Connection Reset？
+
+这意味着**网络通了，但被拒绝了**。
+
+1. **Hairpin NAT (发夹模式) 问题**：这是 Linux 网桥的一个常见限制。容器 B 请求宿主机 IP（外部接口），流量到达宿主机防火墙后，防火墙发现流量源自内部（Docker 网桥），目标又是内部（映射端口的容器 A），这种“出去又回来”的流量经常被 `iptables` 规则拦截或重置。
+2. **防火墙拦截**：宿主机并未开放相关端口给 Docker 网桥段访问。
+
+**结论：** 试图让容器通过宿主机公网/内网 IP 绕一圈去访问另一个容器，不仅性能差，而且极易受防火墙策略影响，是一条弯路。
+
+## 4. 终极解决方案：使用 Docker 自定义网络 (Bridge)
+
+最标准、最稳定且不依赖宿主机 IP 的方案，是利用 Docker 的 **User-defined Bridge Network**。
+
+### 原理
+
+将服务 A 和服务 B 加入同一个 Docker 网络。在这个网络下，Docker 内置的 DNS Server 允许容器通过**容器名 (Container Name)** 直接解析到对应的内部 IP。
+
+### 操作步骤 (基于 Portainer)
+
+#### Step 1: 创建网络
+
+在 Portainer 左侧菜单选择 **Networks** -> **Add network**：
+
+* **Name**: `app-net` (自定义)
+* **Driver**: `bridge` (默认)
+* 点击 Create。
+
+#### Step 2: 服务 A 加入网络
+
+1. 进入服务 A 的详情页。
+2. 在底部 **Connected networks** 处，选择 `app-net` 并点击 **Join network**。
+3. **关键点**：记下服务 A 的容器名（例如叫 `service-a`）。
+
+#### Step 3: 服务 B 加入网络并修改配置
+
+1. 进入服务 B，选择 **Duplicate/Edit** 进行编辑。
+2. 在 **Network** 选项卡中，将网络选为 `app-net`。
+3. **修改代码/环境变量**：
+将调用地址从 IP 改为容器名：
+```
+// 修改前
+http://127.0.0.1:8080/api/...
+http://host.docker.internal:8080/api/...
+
+// 修改后 (直接用服务A的容器名)
+http://service-a:8080/api/...
+
+```
+
+
+*(注意：这里的端口 8080 是服务 A 容器内部暴露的端口，而非宿主机映射端口，虽然通常设为一样)*
+4. **Deploy** 重新部署。
+
+## 5. 总结
+
+在 Docker 环境下进行微服务间通信时，请遵循以下原则：
+
+1. **忘记 Localhost**：容器内的 `localhost` 永远是它自己。
+2. **慎用宿主机 IP**：`host.docker.internal` 或公网 IP 会经过 NAT 和防火墙，容易出现 `Connection reset` 或被安全组拦截。
+3. **首选自定义网络**：通过 `docker network create` 创建网络并互联，使用**容器名**进行通信。这不仅解决了连通性问题，还屏蔽了 IP 变动带来的影响。
+
+---
+
+> **通过这次排查，不仅修复了服务，更理清了 Docker 网络的隔离与通信机制。希望这篇复盘能帮到同样遇到 `Connection reset` 的你。**
