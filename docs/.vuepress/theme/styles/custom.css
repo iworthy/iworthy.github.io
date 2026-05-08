@@ -26,6 +26,16 @@
   */
 }
 
+html.layout-posts .vp-posts-aside,
+html.layout-posts .vp-posts-extract {
+  display: none !important;
+}
+
+html.layout-posts .posts-container {
+  display: block;
+  max-width: 860px;
+}
+
 /** 深色模式 */
 [data-theme="dark"] {
   /*

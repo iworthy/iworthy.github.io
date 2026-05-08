@@ -18,6 +18,7 @@ import collections from './collections'
  * @see https://theme-plume.vuejs.press/config/theme/
  */
 export default defineThemeConfig({
+  home: '/blog/archives/',
   logo: '/img/logo.png',
 
   appearance: true,  // 配置 深色模式
