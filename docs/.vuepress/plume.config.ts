@@ -18,8 +18,8 @@ import collections from './collections'
  * @see https://theme-plume.vuejs.press/config/theme/
  */
 export default defineThemeConfig({
-  home: '/blog/archives/',
-  logo: '/img/logo.png',
+  home: '/',
+  logo: '/img/logo.svg',
 
   appearance: true,  // 配置 深色模式
 
@@ -50,7 +50,7 @@ export default defineThemeConfig({
    * @see https://theme-plume.vuejs.press/config/theme/#profile
    */
   profile: {
-    avatar: '/img/logo.png',
+    avatar: '/img/logo.svg',
     name: 'WORTHY BLOG',
     description: '',
     // circle: true,

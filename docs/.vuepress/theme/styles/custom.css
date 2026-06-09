@@ -26,14 +26,19 @@
   */
 }
 
-html.layout-posts .vp-posts-aside,
-html.layout-posts .vp-posts-extract {
-  display: none !important;
+.vp-breadcrumb {
+  display: none;
 }
 
-html.layout-posts .posts-container {
-  display: block;
-  max-width: 860px;
+@media (min-width: 768px) {
+  .vp-navbar .vp-navbar-appearance {
+    display: flex !important;
+    align-items: center;
+  }
+
+  .vp-navbar .vp-navbar-extra {
+    display: none !important;
+  }
 }
 
 /** 深色模式 */
