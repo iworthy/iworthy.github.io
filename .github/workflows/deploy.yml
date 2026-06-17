@@ -1,12 +1,8 @@
-name: deploy
+name: deploy-github-pages-manual
 
 on:
-  # 每当 push 到 main 分支时触发部署
-  # Deployment is triggered whenever a push is made to the main branch.
-  push:
-    branches: [main]
-  # 手动触发部署
-  # Manually trigger deployment
+  # Cloudflare Pages now builds and deploys the site from main.
+  # Keep GitHub Pages deployment as a manual rollback path only.
   workflow_dispatch:
 
 jobs:
