@@ -16,13 +16,20 @@ interface Archive {
 }
 
 const postsData = usePostsData()
+const firstVisibleYear = 2022
 
-const postCount = computed(() => postsData.value['/blog/']?.length || 0)
+const visiblePosts = computed(() => (postsData.value['/blog/'] || []).filter((post) => {
+  const year = Number.parseInt(post.createTime?.slice(0, 4) || '', 10)
+
+  return year >= firstVisibleYear
+}))
+
+const postCount = computed(() => visiblePosts.value.length)
 
 const archives = computed<Archive[]>(() => {
   const groups = new Map<string, ShortPost[]>()
 
-  for (const post of postsData.value['/blog/'] || []) {
+  for (const post of visiblePosts.value) {
     const createTime = post.createTime?.split(/\s|T/)[0] || ''
     const year = createTime.split('/')[0]
     const list = groups.get(year) || []
