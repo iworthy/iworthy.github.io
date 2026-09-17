@@ -21,7 +21,7 @@ export default defineThemeConfig({
   home: '/',
   logo: '/img/logo.svg',
 
-  appearance: true,  // 配置 深色模式
+  appearance: 'dark',  // 配置 深色模式
 
   social: [
     // { icon: 'github', link: '/' },
