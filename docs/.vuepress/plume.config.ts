@@ -19,9 +19,9 @@ import collections from './collections'
  */
 export default defineThemeConfig({
   home: '/',
-  logo: '/img/logo.svg',
+  logo: '/img/logo.svg?v=2',
 
-  appearance: 'dark',  // 配置 深色模式
+  appearance: true,
 
   social: [
     // { icon: 'github', link: '/' },
@@ -50,9 +50,9 @@ export default defineThemeConfig({
    * @see https://theme-plume.vuejs.press/config/theme/#profile
    */
   profile: {
-    avatar: '/img/logo.svg',
+    avatar: '/img/logo.svg?v=2',
     name: 'WORTHY BLOG',
-    description: '',
+    description: '技术与生活的长期记录',
     // circle: true,
     // location: '',
     // organization: '',
